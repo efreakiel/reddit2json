@@ -3,70 +3,68 @@ import requests
 import json
 import os
 import re
+import logging
 from tqdm import tqdm
-
 from openai import OpenAI
 from dotenv import load_dotenv
 import argparse
 
-
 load_dotenv()  # take environment variables from .env.
 
+# Initialize logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description='Process Reddit posts.')
 parser.add_argument('--method', type=str, default='chat', choices=['translate', 'chat'],
                     help='Method to use for processing text. "translate" uses Deepl, "chat" uses GPT-3.5 Turbo.')
-parser.add_argument('--lang', type=str, default='DE',
+parser.add_argument('--lang', type=str, default='EN',
                     help='Target language for translation. Only used if method is "translate".')
 args = parser.parse_args()
-
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def chat_with_gpt3(prompt):
-    completion = client.chat.completions.create(
-      model="gpt-3.5-turbo",
-      messages=[
-            {"role": "system", "content": f"You are an assistant that meaningfully translates English Reddit post texts into Language:{args.lang} and optimizes them for text-to-speech. The following is a Reddit post that you should translate and optimize for text-to-speech"},
-            {"role": "user", "content": prompt}
-        ]
-    )
-    return completion.choices[0].message.content  # Extract the content attribute
+    try:
+        completion = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are an assistant that meaningfully processes English Reddit post texts and optimizes them for text-to-speech."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        return completion.choices[0].message.content
+    except Exception as e:
+        logging.error(f"Error processing text with GPT-3: {e}")
+        return None
 
 def get_reddit_post(url):
-    reddit = praw.Reddit(
-        client_id=os.getenv("REDDIT_CLIENT_ID"),
-        client_secret=os.getenv("REDDIT_CLIENT_SECRET"),
-        user_agent=os.getenv("REDDIT_USER_AGENT"),
-    )
-    post = reddit.submission(url=url)
-    return post.title, post.selftext
+    try:
+        reddit = praw.Reddit(
+            client_id=os.getenv("REDDIT_CLIENT_ID"),
+            client_secret=os.getenv("REDDIT_CLIENT_SECRET"),
+            user_agent=os.getenv("REDDIT_USER_AGENT"),
+        )
+        post = reddit.submission(url=url)
+        return post.title, post.selftext
+    except Exception as e:
+        logging.error(f"Error fetching Reddit post: {e}")
+        return None, None
 
-
-def translate_to_german(text):
-    #url = "https://api.deepl.com/v2/translate"
-    url = "https://api-free.deepl.com/v2/translate"
-    data = {
-        "auth_key": os.getenv("DEEPL_AUTH_KEY"),
-        "text": text,
-        "target_lang": args.lang,
-    }
-    response = requests.post(url, data=data)
-    response_json = response.json()
-    return response_json['translations'][0]['text']
-
-
-def process_text(title, text):
-    if args.method == 'translate':
-        title = translate_to_german(title)
-        text = translate_to_german(text)
-    elif args.method == 'chat':
-        title = chat_with_gpt3(f"Translate the following title into Language: {args.lang} and adjust it so that it is optimized for a lecture by a text-to-speech program. Also remove all parentheses such as (29m) or (M23) or (M25) etc. Also remove all edits from the Reddit post so only the pure text remains:" + "\n\n" + "title" + "\n\n" + "Revised title:")
-        text = chat_with_gpt3(f"Translate the following text into Language: {args.lang} and adjust it so that it is optimized for a lecture by a text-to-speech program. Also remove all parentheses such as (29m) or (M23) or (M25) or (19) etc. Also remove all edits from the Reddit post so only the pure text remains. Break off the text at the most exciting point to keep the readers very curious:" + "\n\n" + "text" + "\n\n" + "Revised text:")
-    return title, text
-
-
+def translate_text(text, target_lang):
+    try:
+        url = "https://api-free.deepl.com/v2/translate"
+        data = {
+            "auth_key": os.getenv("DEEPL_AUTH_KEY"),
+            "text": text,
+            "target_lang": target_lang,
+        }
+        response = requests.post(url, data=data)
+        response_json = response.json()
+        return response_json['translations'][0]['text']
+    except Exception as e:
+        logging.error(f"Error translating text: {e}")
+        return None
 
 def modify_json(title_text, part_text, outro_text, main_text):
     data = []
@@ -77,51 +75,49 @@ def modify_json(title_text, part_text, outro_text, main_text):
             "outro": outro_text[i],
             "text": main_text[i]
         })
-    
+
     with open('./video.json', 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False)
 
 def read_file_line_by_line(file_path):
-    with open(file_path, 'r') as file:
-        for line in file:
-            yield line
+    try:
+        with open(file_path, 'r') as file:
+            for line in file:
+                yield line
+    except Exception as e:
+        logging.error(f"Error reading file {file_path}: {e}")
 
-title_text = []
-main_text = []
+def main():
+    title_text = []
+    main_text = []
 
-lines = list(read_file_line_by_line('./reddit-post.txt'))  # Convert generator to list to get length
+    lines = list(read_file_line_by_line('./reddit-post.txt'))
 
-for line in tqdm(lines, desc="Processing Reddit posts", unit="post"):
-    title, text = get_reddit_post(line)
-    title, text = process_text(title, text)
+    for line in tqdm(lines, desc="Processing Reddit posts", unit="post"):
+        title, text = get_reddit_post(line.strip())
+        if title is None or text is None:
+            continue
 
-    title = title.replace('\n\n', '.')  # replace '\n\n' with ' ' in title
-    text = text.replace('\n\n', '.')  # replace '\n\n' with ' ' in text
+        if args.method == 'translate':
+            text = translate_text(text, args.lang)
+        elif args.method == 'chat':
+            text = chat_with_gpt3(text)
 
-    title = title.replace('&#x200B', '')  # replace , with '' in title
-    text = text.replace('&#x200B', '')  # replace , with '' in text
+        if text is None:
+            continue
 
-    # remove gender and age indications from title and text
-    title = re.sub(r'\(?\d+\s*[mwMW]\)?', '', title)
-    text = re.sub(r'\(?\d+\s*[mwMW]\)?', '', text)
+        # Clean and modify text
+        for pattern in [(r'\\n\\n', '.'), (r'&#x200B', ''), (r'\\(\\d+\\s*[mwMW]\\)?', ''), (r'\\(\\s*[mwMW]\\s*\\d+\\)?', ''), (r'[<>:"/\\\\|?*,]', '')]:
+            title = re.sub(pattern[0], pattern[1], title)
+            text = re.sub(pattern[0], pattern[1], text)
 
-    # remove gender and age indications where M/W is written before the number
-    title = re.sub(r'\(?\s*[mwMW]\s*\d+\)?', '', title)
-    text = re.sub(r'\(?\s*[mwMW]\s*\d+\)?', '', text)
+        title_text.append(title)
+        main_text.append(text)
 
-    # remove characters not allowed in a Windows filename from title
-    title = re.sub(r'[<>:"/\\|?*,]', '', title)
+    part_text = [""] * len(title_text)
+    outro_text = [""] * len(title_text)
 
-    text = text.replace('Edit:', '')
-    text = text.replace('edit:', '')
+    modify_json(title_text, part_text, outro_text, main_text)
 
-    title_text.append(title)
-    main_text.append(text)
-
-# Initialize part_text and outro_text after the loop
-part_text = [""] * len(title_text)
-outro_text = [""] * len(title_text)
-
-
-
-modify_json(title_text, part_text, outro_text, main_text)
+if __name__ == "__main__":
+    main()
