@@ -33,6 +33,7 @@ pip install -r requirements.txt
 - REDDIT_CLIENT_ID 
 - REDDIT_CLIENT_SECRET 
 - REDDIT_USERNAME 
+- REDDIT_PASSWORD
 
 You can get these values from [here](https://www.reddit.com/prefs/apps).
 
@@ -62,11 +63,15 @@ Once you got all your values fill them in into the .env file that should now be 
 REDDIT_USER_AGENT= value ✅
 REDDIT_CLIENT_ID= value ✅
 REDDIT_CLIENT_SECRET= value ✅
+REDDIT_USERNAME= value ✅
+REDDIT_PASSWORD= value ✅
 
 DEEPL_AUTH_KEY=
 
 OPENAI_API_KEY=
+
 ```
+> The REDDIT_USER_AGENT variable needs to be accurate and descriptive or Reddit will throttle you.  Reddit Format: <platform>:<app ID>:<version string> (by /u/<reddit username>)   Example: android:com.example.myredditapp:v1.2.3 (by /u/your_reddit_username)
 
 > Content adapted from [Reddit Video Maker Bot Documentation](https://reddit-video-maker-bot.netlify.app/docs/configuring)
 
@@ -81,6 +86,8 @@ OPENAI_API_KEY=
 REDDIT_USER_AGENT= value ✅
 REDDIT_CLIENT_ID= value ✅
 REDDIT_CLIENT_SECRET= value ✅
+REDDIT_USERNAME= value ✅
+REDDIT_PASSWORD= value ✅
 
 DEEPL_AUTH_KEY= 
 
@@ -95,6 +102,8 @@ OPENAI_API_KEY= value ✅
 REDDIT_USER_AGENT= value ✅
 REDDIT_CLIENT_ID= value ✅
 REDDIT_CLIENT_SECRET= value ✅
+REDDIT_USERNAME= value ✅
+REDDIT_PASSWORD= value ✅
 
 DEEPL_AUTH_KEY= value ✅
 
@@ -107,6 +116,8 @@ Replace `value ✅` with the respective values you received from Reddit, OpenAI 
 To use the `reddit2json.py` script, you need to pass the method you want to use for processing text. The script supports two methods: `translate` and `chat`.
 
 Here are some example calls:
+
+> To simply pull the data from Reddit without translating just run python reddit2json.py
 
 1. To process Reddit posts using the `translate` method:
 
