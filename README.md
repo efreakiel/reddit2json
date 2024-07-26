@@ -71,7 +71,7 @@ DEEPL_AUTH_KEY=
 OPENAI_API_KEY=
 
 ```
-> The REDDIT_USER_AGENT variable needs to be accurate and descriptive or Reddit will throttle you.  Reddit Format: <platform>:<app ID>:<version string> (by /u/<reddit username>)   Example: android:com.example.myredditapp:v1.2.3 (by /u/your_reddit_username)
+> The REDDIT_USER_AGENT variable needs to be accurate and descriptive or Reddit will throttle you.  Reddit Example: android:com.example.myredditapp:v1.2.3 (by /u/your_reddit_username)
 
 > Content adapted from [Reddit Video Maker Bot Documentation](https://reddit-video-maker-bot.netlify.app/docs/configuring)
 
