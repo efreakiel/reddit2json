@@ -27,15 +27,15 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 def chat_with_gpt3(prompt):
     try:
         completion = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are an assistant that meaningfully processes English Reddit post texts and optimizes them for text-to-speech."},
+                {"role": "system", "content": "You are an assistant that processes English Reddit post text.  You search the post text  looking for stories to optimize for text-to-speech.  The writer of the post tends to jump between talking to the audience about reddit and then will jump back into telling a story without proper story structure so the post content will need to refactored.  Analyze the text and refactor it into fluent stories suitable for text-to-speech while excluding any content that addresses the audience directly about reddit or the post itself.  Keep each story's content as intact as possible while optimizing for text-to-speech.  Provide a title for each story, but do not number them or encapsulate them with special characters.  Do not summarize the stories with a conclusion paragraph."},
                 {"role": "user", "content": prompt}
             ]
         )
         return completion.choices[0].message.content
     except Exception as e:
-        logging.error(f"Error processing text with GPT-3: {e}")
+        logging.error(f"Error processing text with GPT-40-mini: {e}")
         return None
 
 def get_reddit_post(url):

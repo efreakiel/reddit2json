@@ -117,7 +117,7 @@ To use the `reddit2json.py` script, you need to pass the method you want to use 
 
 Here are some example calls:
 
-> To simply pull the data from Reddit without translating just run python reddit2json.py
+> To simply pull the data from Reddit and send to chat without translating just run python reddit2json.py
 
 1. To process Reddit posts using the `translate` method:
 
